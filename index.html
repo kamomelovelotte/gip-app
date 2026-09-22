@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GIP - 야구가 있는 곳, 어디든 우리 집</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-50 flex justify-center items-start min-h-screen">
+  <div id="root" class="w-full max-w-[430px] bg-white min-h-screen shadow-xl relative pb-24"></div>
+
+  <script type="text/babel">
+    function GIPApp() {
+      const [activeTab, setActiveTab] = React.useState('home');
+      const [user, setUser] = React.useState({
+        nickname: '야구집사',
+        favoriteTeams: ['롯데 자이언츠', '치바 롯데 마린즈', '샌프란시스코 자이언츠']
+      });
+      const [showTeamModal, setShowTeamModal] = React.useState(false);
+      const [selectedDate, setSelectedDate] = React.useState('2026-09-22');
+      const [teamSearch, setTeamSearch] = React.useState('');
+      const [expandedContinent, setExpandedContinent] = React.useState('아시아');
+      const [activeInfoModal, setActiveInfoModal] = React.useState(null);
+
+      const continents = [
+        { name: '아시아', leagues: [{ name: 'KBO', teams: ['롯데 자이언츠', '한화 이글스', 'LG 트윈스', '두산 베어스', 'KT 위즈', '삼성 라이온즈', 'NC 다이노스'] }, { name: 'NPB', teams: ['치바 롯데 마린즈', '오릭스 버팔로스', '요미우리 자이언츠'] }] },
+        { name: '북미', leagues: [{ name: 'MLB', teams: ['샌프란시스코 자이언츠', 'LA 다저스', '뉴욕 양키스'] }] },
+        { name: '남미·카리브', leagues: [{ name: 'LIDOM', teams: ['타이거스 델 레이세이'] }] },
+        { name: '유럽', leagues: [{ name: 'DBL', teams: ['하이덴하임 헤비츠'] }] },
+        { name: '오세아니아', leagues: [{ name: 'ABL', teams: ['멜버른 에이시스'] }] },
+        { name: '여자야구', leagues: [{ name: 'WPBL', teams: ['로스앤젤레스 퀸스', '샌프란시스코 파이어벨스'] }] }
+      ];
+
+      const gamesData = [
+        { id: 1, league: 'KBO', homeTeam: '한화 이글스', awayTeam: '롯데 자이언츠', homeScore: 3, awayScore: 5, status: 'FINAL', stadium: '사직야구장', time: '14:00' },
+        { id: 2, league: 'NPB', homeTeam: '오릭스 버팔로스', awayTeam: '치바 롯데 마린즈', homeScore: 0, awayScore: 0, status: 'BEFORE', stadium: 'ZOZO 마린', time: '18:00' },
+        { id: 3, league: 'MLB', homeTeam: 'LA 다저스', awayTeam: '샌프란시스코 자이언츠', homeScore: 2, awayScore: 4, status: 'FINAL', stadium: 'Oracle Park', time: '10:00' }
+      ];
+
+      const myHomeGames = gamesData.filter(g => 
+        user.favoriteTeams.some(t => g.homeTeam.includes(t.replace(' 자이언츠','').replace(' 마린즈','')) || g.awayTeam.includes(t.replace(' 자이언츠','').replace(' 마린즈','')))
+      );
+
+      const toggleTeam = (team) => {
+        if (user.favoriteTeams.includes(team)) {
+          setUser({ ...user, favoriteTeams: user.favoriteTeams.filter(t => t !== team) });
+        } else {
+          setUser({ ...user, favoriteTeams: [...user.favoriteTeams, team] });
+        }
+      };
+
+      return (
+        <div className="flex flex-col min-h-screen text-gray-900">
+          <header className="px-5 pt-5 pb-3 flex justify-between items-center">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-2xl font-black tracking-tighter m-0">GIP</h1>
+                <span className="text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded font-bold">집</span>
+              </div>
+              <p className="text-xs text-gray-500 font-semibold mt-0.5">야구가 있는 곳, 어디든 우리 집.</p>
+            </div>
+            <button className="bg-black text-white px-4 py-2 rounded-full text-xs font-bold cursor-pointer">시작하기</button>
+          </header>
+
+          {activeTab === 'home' && (
+            <main className="px-5">
+              <div className="flex items-center justify-between bg-gray-50 p-3 rounded-2xl mb-6 mt-2">
+                <span className="cursor-pointer text-gray-400 font-bold">&lt;</span>
+                <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-xs text-xs font-bold">
+                  <span>📅</span> {selectedDate}
+                </div>
+                <span className="cursor-pointer text-gray-400 font-bold">&gt;</span>
+              </div>
+
+              <section className="mb-8">
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-base font-extrabold m-0">우리 집 경기</h2>
+                  <span onClick={() => setActiveTab('my')} className="text-xs text-gray-500 cursor-pointer font-semibold">팀 설정 &gt;</span>
+                </div>
+                
+                {myHomeGames.length > 0 ? myHomeGames.map(game => (
+                  <div key={game.id} className="border border-gray-200 rounded-2xl p-4 mb-3 bg-white shadow-xs">
+                    <div className="flex justify-between text-[11px] text-gray-400 font-bold mb-2">
+                      <span>{game.league}</span>
+                      <span>{game.status === 'FINAL' ? 'FINAL' : game.time}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm font-bold flex-1 text-left">{game.awayTeam}</div>
+                      <div className="text-base font-black px-3">{game.status === 'FINAL' ? `${game.awayScore} : ${game.homeScore}` : 'VS'}</div>
+                      <div className="text-sm font-bold flex-1 text-right">{game.homeTeam}</div>
+                    </div>
+                    <div className="text-center text-[11px] text-gray-400 mt-2.5">
+                      {selectedDate} · {game.stadium}
+                    </div>
+                  </div>
+                )) : (
+                  <div className="p-6 text-center text-gray-400 text-xs bg-gray-50 rounded-2xl">
+                    선택된 날짜에 설정된 우리 집 팀 경기가 없습니다.
+                  </div>
+                )}
+              </section>
+            </main>
+          )}
+
+          {activeTab === 'my' && (
+            <main className="px-5">
+              <h2 className="text-xl font-black my-4">마이</h2>
+              
+              <div className="border border-gray-200 rounded-2xl p-4 mb-5 flex justify-between items-center bg-white">
+                <div className="flex gap-3 items-center">
+                  <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-black text-sm">집</div>
+                  <div>
+                    <div className="text-sm font-bold">{user.nickname}</div>
+                    <div className="text-[11px] text-gray-500 mt-0.5">나만의 집을 만들어 보세요.</div>
+                  </div>
+                </div>
+                <button className="bg-white border border-gray-300 px-3 py-1.5 rounded-lg text-xs font-bold">로그인</button>
+              </div>
+
+              <div className="border border-gray-200 rounded-2xl p-4 mb-5 bg-white">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-sm font-extrabold">⭐ 우리 집 설정하기</span>
+                  <span onClick={() => setShowTeamModal(true)} className="text-xs text-gray-500 cursor-pointer font-bold">더보기 &gt;</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {user.favoriteTeams.map(team => (
+                    <span key={team} className="bg-black text-white px-3 py-1 rounded-full text-[11px] font-bold">{team} ✓</span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                {[
+                  { id: 'notice', label: '알림 설정' },
+                  { id: 'cs', label: '고객센터' },
+                  { id: 'terms', label: '이용약관' },
+                  { id: 'privacy', label: '개인정보처리방침' }
+                ].map((menu, idx) => (
+                  <div key={menu.id} onClick={() => setActiveInfoModal(menu.id)} className="p-4 flex justify-between items-center border-b border-gray-100 last:border-b-0 cursor-pointer text-xs font-bold">
+                    <span>{menu.label}</span>
+                    <span className="text-gray-300">&gt;</span>
+                  </div>
+                ))}
+              </div>
+            </main>
+          )}
+
+          {/* 우리집 설정 모달 */}
+          {showTeamModal && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+              <div className="bg-white w-full max-w-[430px] h-[80vh] rounded-t-3xl p-6 flex flex-col box-border">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-base font-black m-0">🏡 우리집 설정</h3>
+                  <button onClick={() => setShowTeamModal(false)} className="bg-transparent border-none text-base cursor-pointer">✕</button>
+                </div>
+                <p className="text-[11px] text-gray-500 mb-4">응원하는 팀을 선택하여 우리집을 꾸며보세요.</p>
+                
+                <input type="text" placeholder="팀 이름을 검색하세요 (예: 롯데, 다저스)" value={teamSearch} onChange={(e) => setTeamSearch(e.target.value)} className="w-full p-3 rounded-xl border border-gray-200 text-xs mb-4 bg-gray-50 outline-none" />
+
+                <div className="flex-1 overflow-y-auto pr-1">
+                  {continents.map(c => (
+                    <div key={c.name} className="mb-3 border border-gray-100 rounded-xl overflow-hidden">
+                      <div onClick={() => setExpandedContinent(expandedContinent === c.name ? '' : c.name)} className="p-3.5 bg-gray-50 flex justify-between items-center cursor-pointer font-bold text-xs">
+                        <span>{c.name}</span>
+                        <span>{expandedContinent === c.name ? '▲' : '▼'}</span>
+                      </div>
+                      {expandedContinent === c.name && (
+                        <div className="p-3">
+                          {c.leagues.map(l => (
+                            <div key={l.name} className="mb-2.5">
+                              <div className="text-[11px] font-bold text-gray-600 mb-2">{l.name}</div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {l.teams.filter(t => !teamSearch || t.includes(teamSearch)).map(team => {
+                                  const isSelected = user.favoriteTeams.includes(team);
+                                  return (
+                                    <button key={team} onClick={() => toggleTeam(team)} className={`px-3 py-1.5 rounded-full border border-gray-200 text-[11px] font-bold cursor-pointer ${isSelected ? 'bg-black text-white' : 'bg-white text-gray-900'}`}>
+                                      {team} {isSelected ? '✓' : '+'}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button onClick={() => setShowTeamModal(false)} className="w-full py-3.5 bg-black text-white border-none rounded-xl text-xs font-extrabold cursor-pointer mt-4">
+                  설정 완료
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 정보 팝업 모달 */}
+          {activeInfoModal && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-5">
+              <div className="bg-white w-full max-w-[320px] rounded-2xl p-5 box-border">
+                <h3 className="text-sm font-black mt-0 mb-3">
+                  {activeInfoModal === 'notice' && '알림 설정'}
+                  {activeInfoModal === 'cs' && '고객센터'}
+                  {activeInfoModal === 'terms' && '이용약관'}
+                  {activeInfoModal === 'privacy' && '개인정보처리방침'}
+                </h3>
+                <p className="text-xs text-gray-600 leading-normal mb-4">
+                  {activeInfoModal === 'notice' && '경기 시작 전 및 결과 알림을 받아보실 수 있습니다.'}
+                  {activeInfoModal === 'cs' && '문의사항은 support@gip-baseball.com으로 연락주세요.'}
+                  {activeInfoModal === 'terms' && 'GIP 서비스 이용약관 내용입니다. 야구를 사랑하는 모든 분들을 위한 공간입니다.'}
+                  {activeInfoModal === 'privacy' && '사용자의 소중한 개인정보는 안전하게 보호되며 목적 외로 사용되지 않습니다.'}
+                </p>
+                <button onClick={() => setActiveInfoModal(null)} className="w-full py-2.5 bg-black text-white border-none rounded-lg text-xs font-bold cursor-pointer">확인</button>
+              </div>
+            </div>
+          )}
+
+          <nav className="fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-white border-t border-gray-100 flex h-16 z-40">
+            {[
+              { id: 'home', label: '홈', icon: '🏠' },
+              { id: 'rank', label: '순위', icon: '📊' },
+              { id: 'record', label: '기록', icon: '📝' },
+              { id: 'my', label: '마이', icon: '👤' }
+            ].map(tab => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 border-none bg-transparent flex flex-col items-center justify-center cursor-pointer ${activeTab === tab.id ? 'text-black font-black' : 'text-gray-400 font-bold'}`}>
+                <span className="text-base mb-0.5">{tab.icon}</span>
+                <span className="text-[10px]">{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<GIPApp />, document.getElementById('root'));
+  </script>
+</body>
+</html>
