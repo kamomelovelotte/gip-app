@@ -10,13 +10,13 @@
   <div id="app" class="w-full max-w-[430px] bg-white min-h-screen shadow-xl relative pb-24"></div>
 
   <script>
-    // 상태 관리 데이터
     let state = {
       activeTab: 'home',
       nickname: '야구집사',
       favoriteTeams: ['롯데 자이언츠', '치바 롯데 마린즈', '샌프란시스코 자이언츠'],
       showTeamModal: false,
       selectedDate: '2026-09-22',
+      showAllGames: false, // 우리집 경기 전체보기 토글
       teamSearch: '',
       expandedContinent: '아시아',
       activeInfoModal: null
@@ -31,11 +31,43 @@
       { name: '여자야구', leagues: [{ name: 'WPBL', teams: ['로스앤젤레스 퀸스', '샌프란시스코 파이어벨스'] }] }
     ];
 
-    const gamesData = [
-      { id: 1, league: 'KBO', homeTeam: '한화 이글스', awayTeam: '롯데 자이언츠', homeScore: 3, awayScore: 5, status: 'FINAL', stadium: '사직야구장', time: '14:00' },
-      { id: 2, league: 'NPB', homeTeam: '오릭스 버팔로스', awayTeam: '치바 롯데 마린즈', homeScore: 0, awayScore: 0, status: 'BEFORE', stadium: 'ZOZO 마린', time: '18:00' },
-      { id: 3, league: 'MLB', homeTeam: 'LA 다저스', awayTeam: '샌프란시스코 자이언츠', homeScore: 2, awayScore: 4, status: 'FINAL', stadium: 'Oracle Park', time: '10:00' }
-    ];
+    // 날짜별 샘플 경기 데이터
+    const mockGamesByDate = {
+      '2026-09-21': [
+        { id: 11, league: 'KBO', homeTeam: 'LG 트윈스', awayTeam: '롯데 자이언츠', homeScore: 2, awayScore: 4, status: 'FINAL', stadium: '잠실야구장', time: '18:30' },
+        { id: 12, league: 'MLB', homeTeam: 'LA 다저스', awayTeam: '샌프란시스코 자이언츠', homeScore: 5, awayScore: 3, status: 'FINAL', stadium: 'Dodger Stadium', time: '11:00' }
+      ],
+      '2026-09-22': [
+        { id: 1, league: 'KBO', homeTeam: '한화 이글스', awayTeam: '롯데 자이언츠', homeScore: 3, awayScore: 5, status: 'FINAL', stadium: '사직야구장', time: '14:00' },
+        { id: 2, league: 'NPB', homeTeam: '오릭스 버팔로스', awayTeam: '치바 롯데 마린즈', homeScore: 1, awayScore: 2, status: 'LIVE', stadium: 'ZOZO 마린', time: '18:00' },
+        { id: 3, league: 'MLB', homeTeam: 'LA 다저스', awayTeam: '샌프란시스코 자이언츠', homeScore: 2, awayScore: 4, status: 'FINAL', stadium: 'Oracle Park', time: '10:00' }
+      ],
+      '2026-09-23': [
+        { id: 21, league: 'KBO', homeTeam: '삼성 라이온즈', awayTeam: 'LG 트윈스', homeScore: 0, awayScore: 0, status: 'BEFORE', stadium: '대구삼성라이온즈파크', time: '18:30' },
+        { id: 22, league: 'NPB', homeTeam: '치바 롯데 마린즈', awayTeam: '요미우리 자이언츠', homeScore: 0, awayScore: 0, status: 'BEFORE', stadium: 'ZOZO 마린', time: '18:00' }
+      ]
+    };
+
+    // 리그별 순위 데이터
+    const rankingsData = {
+      KBO: [
+        { rank: 1, team: 'KIA 타이거즈', wins: 80, losses: 50, draws: 2, rate: '.615' },
+        { rank: 2, team: '삼성 라이온즈', wins: 75, losses: 56, draws: 2, rate: '.573' },
+        { rank: 3, team: 'LG 트윈스', wins: 72, losses: 58, draws: 4, rate: '.554' },
+        { rank: 4, team: '두산 베어스', wins: 68, losses: 62, draws: 4, rate: '.523' },
+        { rank: 5, team: '롯데 자이언츠', wins: 65, losses: 65, draws: 3, rate: '.500' }
+      ],
+      NPB: [
+        { rank: 1, team: '소프트뱅크 호크스', wins: 85, losses: 45, draws: 3, rate: '.654' },
+        { rank: 2, team: '치바 롯데 마린즈', wins: 72, losses: 55, draws: 6, rate: '.567' },
+        { rank: 3, team: '한신 타이거스', wins: 70, losses: 58, draws: 5, rate: '.547' }
+      ],
+      MLB: [
+        { rank: 1, team: 'LA 다저스', wins: 92, losses: 60, rate: '.568' },
+        { rank: 2, team: '샌디에이고 파드리스', wins: 88, losses: 64, rate: '.543' },
+        { rank: 3, team: '샌프란시스코 자이언츠', wins: 78, losses: 74, rate: '.513' }
+      ]
+    };
 
     function setState(newState) {
       state = { ...state, ...newState };
@@ -44,6 +76,17 @@
 
     function switchTab(tab) {
       setState({ activeTab: tab });
+    }
+
+    function changeDate(days) {
+      const dates = ['2026-09-21', '2026-09-22', '2026-09-23'];
+      let idx = dates.indexOf(state.selectedDate);
+      idx += days;
+      if (idx >= 0 && idx < dates.length) {
+        setState({ selectedDate: dates[idx] });
+      } else {
+        alert('조회 가능한 날짜 범위(9월 21일 ~ 23일)입니다.');
+      }
     }
 
     function toggleTeam(team) {
@@ -59,9 +102,12 @@
     function render() {
       const app = document.getElementById('app');
       
-      const myHomeGames = gamesData.filter(g => 
-        state.favoriteTeams.some(t => g.homeTeam.includes(t.replace(' 자이언츠','').replace(' 마린즈','')) || g.awayTeam.includes(t.replace(' 자이언츠','').replace(' 마린즈','')))
-      );
+      const currentGames = mockGamesByDate[state.selectedDate] || [];
+      const myHomeGames = state.showAllGames 
+        ? currentGames 
+        : currentGames.filter(g => 
+            state.favoriteTeams.some(t => g.homeTeam.includes(t.replace(' 자이언츠','').replace(' 마린즈','')) || g.awayTeam.includes(t.replace(' 자이언츠','').replace(' 마린즈','')))
+          );
 
       app.innerHTML = `
         <div class="flex flex-col min-h-screen text-gray-900 select-none">
@@ -79,28 +125,36 @@
           ${state.activeTab === 'home' ? `
             <main class="px-5">
               <div class="flex items-center justify-between bg-gray-50 p-3 rounded-2xl mb-6 mt-2">
-                <span class="cursor-pointer text-gray-400 font-bold px-2">&lt;</span>
+                <span onclick="changeDate(-1)" class="cursor-pointer text-gray-600 font-bold px-3 py-1 hover:bg-gray-200 rounded-lg">&lt; 어제</span>
                 <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm text-xs font-bold">
                   <span>📅</span> ${state.selectedDate}
                 </div>
-                <span class="cursor-pointer text-gray-400 font-bold px-2">&gt;</span>
+                <span onclick="changeDate(1)" class="cursor-pointer text-gray-600 font-bold px-3 py-1 hover:bg-gray-200 rounded-lg">내일 &gt;</span>
               </div>
 
               <section class="mb-8">
                 <div class="flex justify-between items-center mb-3">
-                  <h2 class="text-base font-extrabold m-0">우리 집 경기</h2>
-                  <span onclick="switchTab('my')" class="text-xs text-gray-500 cursor-pointer font-semibold hover:underline">팀 설정 &gt;</span>
+                  <h2 class="text-base font-extrabold m-0">
+                    ${state.showAllGames ? '전체 경기 보기' : '우리 집 경기'}
+                  </h2>
+                  <div class="flex gap-2">
+                    <span onclick="setState({ showAllGames: !state.showAllGames })" class="text-xs text-blue-600 cursor-pointer font-bold hover:underline">
+                      ${state.showAllGames ? '내 팀만 보기' : '전체보기'}
+                    </span>
+                    <span class="text-gray-300">|</span>
+                    <span onclick="switchTab('my')" class="text-xs text-gray-500 cursor-pointer font-semibold hover:underline">팀 설정 &gt;</span>
+                  </div>
                 </div>
                 
                 ${myHomeGames.length > 0 ? myHomeGames.map(game => `
                   <div class="border border-gray-200 rounded-2xl p-4 mb-3 bg-white shadow-xs">
                     <div class="flex justify-between text-[11px] text-gray-400 font-bold mb-2">
                       <span>${game.league}</span>
-                      <span>${game.status === 'FINAL' ? 'FINAL' : game.time}</span>
+                      <span class="${game.status === 'LIVE' ? 'text-red-500 animate-pulse' : ''}">${game.status === 'LIVE' ? '🔴 LIVE' : game.status === 'FINAL' ? 'FINAL' : game.time}</span>
                     </div>
                     <div class="flex justify-between items-center">
                       <div class="text-sm font-bold flex-1 text-left">${game.awayTeam}</div>
-                      <div class="text-base font-black px-3">${game.status === 'FINAL' ? `${game.awayScore} :${game.homeScore}` : 'VS'}</div>
+                      <div class="text-base font-black px-3">${game.status === 'BEFORE' ? 'VS' : `${game.awayScore} :${game.homeScore}`}</div>
                       <div class="text-sm font-bold flex-1 text-right">${game.homeTeam}</div>
                     </div>
                     <div class="text-center text-[11px] text-gray-400 mt-2.5">
@@ -109,10 +163,57 @@
                   </div>
                 `).join('') : `
                   <div class="p-6 text-center text-gray-400 text-xs bg-gray-50 rounded-2xl">
-                    선택된 날짜에 설정된 우리 집 팀 경기가 없습니다.
+                    선택한 날짜에 해당하는 경기가 없습니다. (전체보기를 눌러보세요!)
                   </div>
                 `}
               </section>
+            </main>
+          ` : ''}
+
+          ${state.activeTab === 'rank' ? `
+            <main class="px-5">
+              <h2 class="text-xl font-black my-4">📊 리그 순위</h2>
+              <div class="flex gap-2 mb-4">
+                <span class="bg-black text-white px-3 py-1 rounded-lg text-xs font-bold">KBO</span>
+                <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-xs font-bold cursor-pointer" onclick="alert('NPB 순위 데이터 준비중')">NPB</span>
+                <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-xs font-bold cursor-pointer" onclick="alert('MLB 순위 데이터 준비중')">MLB</span>
+              </div>
+              <div class="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr class="bg-gray-50 border-b border-gray-100 text-gray-500">
+                      <th class="p-3">순위</th>
+                      <th class="p-3">팀명</th>
+                      <th class="p-3 text-center">승-패</th>
+                      <th class="p-3 text-right">승률</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rankingsData.KBO.map(r => `
+                      <tr class="border-b border-gray-50 hover:bg-gray-50">
+                        <td class="p-3 font-bold">${r.rank}</td>
+                        <td class="p-3 font-extrabold">${r.team}</td>
+                        <td class="p-3 text-center text-gray-600">${r.wins}-${r.losses}</td>
+                        <td class="p-3 text-right font-bold text-gray-800">${r.rate}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </main>
+          ` : ''}
+
+          ${state.activeTab === 'record' ? `
+            <main class="px-5">
+              <h2 class="text-xl font-black my-4">📝 직관 및 응원 기록</h2>
+              <div class="border border-dashed border-gray-300 rounded-2xl p-6 text-center bg-gray-50 mb-4">
+                <p class="text-xs text-gray-500 font-bold mb-3">아직 작성된 직관 기록이 없습니다.</p>
+                <button onclick="alert('직관 기록 작성 기능은 곧 추가됩니다!')" class="bg-black text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer">직관 기록 남기기 +</button>
+              </div>
+              <div class="border border-gray-200 rounded-2xl p-4 bg-white shadow-xs">
+                <div class="text-xs font-bold text-gray-400 mb-1">나의 응원 팀 요약</div>
+                <div class="text-sm font-black text-gray-800">롯데 자이언츠 & 치바 롯데 마린즈 ⚾</div>
+              </div>
             </main>
           ` : ''}
 
@@ -230,11 +331,11 @@
               <span class="text-base mb-0.5">🏠</span>
               <span class="text-[10px]">홈</span>
             </button>
-            <button onclick="alert('준비 중인 메뉴입니다!')" class="flex-1 border-none bg-transparent flex flex-col items-center justify-center cursor-pointer text-gray-400 font-bold">
+            <button onclick="switchTab('rank')" class="flex-1 border-none bg-transparent flex flex-col items-center justify-center cursor-pointer ${state.activeTab === 'rank' ? 'text-black font-black' : 'text-gray-400 font-bold'}">
               <span class="text-base mb-0.5">📊</span>
               <span class="text-[10px]">순위</span>
             </button>
-            <button onclick="alert('준비 중인 메뉴입니다!')" class="flex-1 border-none bg-transparent flex flex-col items-center justify-center cursor-pointer text-gray-400 font-bold">
+            <button onclick="switchTab('record')" class="flex-1 border-none bg-transparent flex flex-col items-center justify-center cursor-pointer ${state.activeTab === 'record' ? 'text-black font-black' : 'text-gray-400 font-bold'}">
               <span class="text-base mb-0.5">📝</span>
               <span class="text-[10px]">기록</span>
             </button>
@@ -247,7 +348,6 @@
       `;
     }
 
-    // 최초 실행
     render();
   </script>
 </body>
